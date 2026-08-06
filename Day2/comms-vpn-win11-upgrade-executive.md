@@ -1,0 +1,1 @@
+Executive: Your team's access and data remain safe and secure. A recent Windows update had unintentionally removed some VPN connection software from affected laptops. We've reinstalled it, reconnected everyone to internal systems, and confirmed everything is working as expected. No action is needed on your part.
