@@ -1,138 +1,116 @@
-# Root Cause Analysis — Finance Shared Drive Access Failure
-## Finance team | DESKTOP-FB041 and related DESKTOP-FB* devices | 2026-08-06
+# Runbook - Restore Finance Shared Drive Mapping (Context Mismatch)
 
-**Document prepared by:** DWP Engineer
-**Date prepared:** 2026-08-06
-**Incident date:** 2026-08-06
-**Incident window:** 08:00 – 09:09
-**Resolution confirmed:** 09:09
-**Severity:** Medium — Finance users could not access shared drives during morning logon
-**Status:** RESOLVED
+## 1. Prerequisites
 
----
+Complete all prerequisite checks before starting the procedure.
 
-## 1. Incident Summary
-
-At approximately 08:40 this morning, Finance users reported that shared drives were unavailable. The issue affected Finance devices in the `DESKTOP-FB*` group and prevented access to the mapped Finance share. Group Policy processing itself was confirmed healthy on an affected workstation, which ruled out a general GPO failure.
-
-The root cause was traced to a drive-mapping script migration that occurred the previous night. The script had been moved from a GPO logon script that ran in the user context to an Intune PowerShell script that ran as SYSTEM. The script was not updated for SYSTEM context, and the UNC path could not be accessed when the script executed at logon.
-
-The suggested resolution was applied and the issue was confirmed resolved at **09:09 AM**. A user was verified logging in to the host successfully, and no further issues were reported.
-
----
-
-## 2. Affected Systems and Users
-
-| Item | Detail |
+| Requirement | Details |
 |---|---|
-| Affected users | Finance team |
-| Affected devices | DESKTOP-FB* devices in OU=Finance |
-| Scope | Finance shared drive mapping only |
-| Other users affected | None reported |
-| Business impact | Finance users could not access mapped shared drives during morning logon |
-| Resolution time | 09:09 AM after script/context remediation |
+| Access rights | [ELEVATED] Intune Administrator (or equivalent) with permission to edit Platform scripts and assignments. |
+| Access rights | [ELEVATED] Local administrator on one affected Finance endpoint for validation commands and log checks. |
+| Access rights | [ELEVATED] Read access to Entra group membership for the Finance device/user targeting groups. |
+| Systems | Access to Intune Admin Center. |
+| Systems | Access to one affected device in the `DESKTOP-FB*` estate (example: DESKTOP-FB041). |
+| Systems | Network reachability to `\\finbridge-fs01\\Finance` from user sessions on Finance devices. |
+| Tools | PowerShell 5.1+ on validation endpoint. |
+| Tools | Event Viewer on validation endpoint. |
+| Inputs required | Script name: `Map-FinBridgeDrives.ps1`; expected drive letter: `S:`; target share: `\\finbridge-fs01\\Finance`. |
 
----
+## 2. Procedure
 
-## 3. Timeline of Events
+Follow steps in order without skipping.
 
-| Time | Event |
-|---|---|
-| **2024-03-14 23:30** | Drive mapping script migrated from GPO logon script running as USER to Intune PowerShell script running as SYSTEM |
-| **08:00:01** | ScriptRunner starts `Map-FinBridgeDrives.ps1` |
-| **08:00:02** | Script context confirmed as SYSTEM account |
-| **08:00:03** | Network path `\\finbridge-fs01\\Finance` is not accessible from SYSTEM context; script fails with `Network name cannot be found` |
-| **08:00:04** | ScriptRunner reports no retry configured |
-| **08:00:05** | Workstation service enters running state on DESKTOP-FB041 |
-| **08:00:06** | Group Policy settings processed successfully on DESKTOP-FB041, confirming the issue is not a Group Policy processing failure |
-| **08:00:07** | NTFS Event 98 reports drive letter S: has not been assigned |
-| **Morning triage** | Migration note reviewed; script context mismatch identified as cause |
-| **Remediation applied** | Suggested resolution applied to correct the drive-mapping execution path for Finance devices |
-| **09:09** | User logon verified on host and no further shared-drive issues reported |
+1. Open Intune Admin Center in a browser.
+Expected result: Intune portal home page loads.
 
----
+2. Navigate to Devices -> Scripts and remediations -> Platform scripts.
+Expected result: The list of platform scripts is visible.
 
-## 4. Supporting Evidence
+3. Open the script object named `Map-FinBridgeDrives.ps1`.
+Expected result: Script overview page opens.
 
-### 4.1 Intune Management Extension Log
+4. Select Edit on the script object.
+Expected result: Script settings page opens in edit mode.
 
-| Time | Source | Detail |
-|---|---|---|
-| 08:00:01 | ScriptRunner | Executing: `Map-FinBridgeDrives.ps1` |
-| 08:00:02 | ScriptRunner | Script context: SYSTEM account |
-| 08:00:03 | ScriptRunner | Warning: Network path `\\finbridge-fs01\\Finance` not accessible from SYSTEM context at execution time |
-| 08:00:03 | ScriptRunner | Error: `Map-FinBridgeDrives.ps1` failed; exit code 1; `Network name cannot be found` |
-| 08:00:04 | ScriptRunner | No retry configured |
+5. Save a copy of the current script content and current settings into the incident ticket as "pre-change backup".
+Expected result: A timestamped backup of script content and settings exists in the ticket.
 
-### 4.2 System Log — DESKTOP-FB041
+6. Set "Run this script using the logged on credentials" to `Yes`. [ELEVATED]
+Expected result: The execution context is configured to user context instead of SYSTEM.
 
-| Time | Event ID | Level | Detail |
-|---|---|---|---|
-| 08:00:05 | 7036 | Information | Workstation service entered running state |
-| 08:00:06 | 1500 | Information | Group Policy settings processed successfully |
-| 08:00:07 | 98 | Warning | File system could not map drive letter S:; drive letter has not been assigned |
+7. Select Review + save.
+Expected result: The script settings are saved successfully.
 
-### 4.3 Migration Change Note
+8. Open Assignments for `Map-FinBridgeDrives.ps1`.
+Expected result: Assignment scope is shown.
 
-- **2024-03-14 23:30** — Drive mapping script migrated from GPO logon script (runs as USER) to Intune PowerShell script (runs as SYSTEM).
-- Script was **not updated to handle SYSTEM context**.
-- UNC network paths require the Workstation service and mapped credentials, which are not available to SYSTEM at login time.
+9. Confirm the assignment targets only the Finance scope (Finance devices/users) and remove any non-Finance assignment. [ELEVATED]
+Expected result: Only the intended Finance assignment remains.
 
-### 4.4 Key Evidence Notes
+10. Trigger a device sync for one affected Finance endpoint from Intune. [ELEVATED]
+Expected result: Sync action is accepted by Intune.
 
-- **Event 1500 at 08:00:06** proves Group Policy itself processed successfully, so the failure was not a GPO engine problem.
-- **ScriptRunner failure at 08:00:03** shows the script could not resolve or reach the UNC path from SYSTEM context.
-- **The migration note at 2024-03-14 23:30** explains why the script failed only after the move to Intune SYSTEM execution.
-- **Event 98 at 08:00:07** confirms the mapped drive letter was never created.
+11. Sign in to the synced endpoint with a Finance user account.
+Expected result: User reaches the desktop without script error pop-ups.
 
----
+12. Run `Get-PSDrive -Name S` in PowerShell on the endpoint.
+Expected result: Drive `S:` is returned and mapped.
 
-## 5. Root Cause
+13. Run `Test-Path "\\finbridge-fs01\\Finance"` in the same user session.
+Expected result: Command returns `True`.
 
-The drive-mapping script `Map-FinBridgeDrives.ps1` was migrated from a user-context GPO logon script to an Intune PowerShell script running as SYSTEM. The script was not updated for SYSTEM execution, so when it ran at logon it could not access the UNC path `\\finbridge-fs01\\Finance`. Because SYSTEM does not have the same user context, mapped credentials, or timing as an interactive user session, the script failed with `Network name cannot be found` and the Finance drive mapping did not complete.
+14. Open File Explorer and browse `S:\`.
+Expected result: Finance share content is visible and accessible.
 
----
+## 3. Verification
 
-## 6. Five Whys Analysis
+Confirm all checks below before closing the incident.
 
-| # | Why? | Answer |
-|---|---|---|
-| 1 | Why could Finance users not access shared drives? | The mapped Finance drive was not created at logon, so the share was unavailable to the user. |
-| 2 | Why was the mapped drive not created? | `Map-FinBridgeDrives.ps1` failed during execution. |
-| 3 | Why did the script fail? | It ran in SYSTEM context and could not access `\\finbridge-fs01\\Finance`, returning `Network name cannot be found`. |
-| 4 | Why was the script running in SYSTEM context? | The script had been migrated from a GPO logon script to an Intune PowerShell script. |
-| 5 | Why did the migration cause failure? | The script was not updated for SYSTEM context and still depended on user-context network access and credentials that are not available at login time. |
+1. Validate `S:` is present for the test user using `Get-PSDrive -Name S`.
+Pass criteria: Output contains drive `S:` mapped to the Finance share.
 
-**Root cause of the process gap:** The script migration changed the execution context, but the drive-mapping logic was not revalidated for SYSTEM execution before rollout.
+2. Validate direct UNC access using `Test-Path "\\finbridge-fs01\\Finance"`.
+Pass criteria: Command returns `True`.
 
----
+3. Validate no new mapping failure event after latest logon.
+Pass criteria: System log has no new Event ID `98` entries after the test logon timestamp.
 
-## 7. Immediate Actions Taken
+4. Validate with one additional Finance user on a second affected device.
+Pass criteria: Second user also receives `S:` successfully.
 
-| Action | Time | Outcome |
-|---|---|---|
-| Script migration issue identified in change note | Morning triage | Confirmed cause of failure |
-| Suggested resolution applied | Before 09:09 | Drive mapping issue corrected |
-| User logon verified on host | 09:09 | Finance user access restored |
-| No further issues reported | 09:09 onward | Service confirmed stable |
+5. Validate incident monitoring channel for 30 minutes.
+Pass criteria: No new Finance shared-drive failures are reported.
 
----
+## 4. Rollback
 
-## 8. Preventive Actions
+Execute rollback immediately if users lose broader access, error rates increase, or mapping fails for more users after the change.
 
-| # | Action | Owner | Priority |
-|---|---|---|---|
-| 1 | **Validate execution context before migrating scripts** — any logon or drive-mapping script moved from user context to Intune SYSTEM context must be tested explicitly under SYSTEM before production rollout. | Endpoint / Intune team | High |
-| 2 | **Do not rely on user-only resources in SYSTEM scripts** — scripts that depend on mapped credentials or interactive network availability should remain in user context or be refactored to remove those dependencies. | Endpoint / Platform team | High |
-| 3 | **Add pilot-device verification for drive maps** — confirm the mapped drive exists on at least one Finance pilot workstation before promoting the change to the rest of the OU. | Service Desk / Endpoint team | High |
-| 4 | **Include Workstation service and UNC reachability checks in rollout validation** — verify the target share can be reached from the intended script context and timing before deployment. | Intune / Platform team | Medium |
-| 5 | **Document script migration standards** — require a context review, dependency review, and rollback plan for every script migration from GPO to Intune. | Change management | Medium |
+1. Open Intune Admin Center and return to the `Map-FinBridgeDrives.ps1` script.
+Expected result: Script configuration page is open.
 
----
+2. Reapply the exact pre-change script settings from the "pre-change backup" captured in Procedure step 5. [ELEVATED]
+Expected result: Script settings match the recorded pre-change state.
 
-## 9. Lessons Learned
+3. Remove current Finance assignment from the Intune script. [ELEVATED]
+Expected result: Intune script no longer targets Finance scope.
 
-- **Execution context matters.** A script that works as a user logon script can fail immediately when moved to SYSTEM.
-- **A successful Group Policy event does not prove drive mapping success.** The drive mapping failure occurred independently of GPO processing.
-- **Migration notes are high-value evidence.** The change log provided the key clue that the script had not been updated for SYSTEM context.
-- **Validation must match the deployment model.** Testing should confirm the script works in the exact context and timing it will use in production.
+4. Re-enable the previously known-good Finance GPO logon script assignment recorded in the change record. [ELEVATED]
+Expected result: Finance logon script policy is active again.
+
+5. Trigger policy update on one affected endpoint with `gpupdate /force`.
+Expected result: Group Policy refresh completes successfully.
+
+6. Sign in with a Finance test user and check `S:` mapping.
+Expected result: `S:` is restored through the GPO path.
+
+7. Post an incident update that rollback is active and freeze further Intune script edits until root cause re-review is complete.
+Expected result: Team has clear communication and change freeze is in place.
+
+## 5. Notes
+
+- Edge case: If `Test-Path "\\finbridge-fs01\\Finance"` fails but `S:` exists, treat this as intermittent network/share availability and engage file server team.
+- Edge case: If mapping succeeds only after second sign-in, verify network initialization timing and consider delayed logon script execution.
+- Warning: Do not run Finance drive mapping in SYSTEM context when the script depends on user session credentials.
+- Warning: Keep assignment scope limited to Finance during remediation to avoid cross-business impact.
+- Related incident pattern: Account lockout or stale credential incidents can present as drive mapping failures when cached credentials are invalid.
+- Related knowledge record: Known Error FIN-001 (drive mapping script in system context).
