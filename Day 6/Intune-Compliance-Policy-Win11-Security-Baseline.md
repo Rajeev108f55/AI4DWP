@@ -55,8 +55,8 @@ Set "Mark device noncompliant" action to **Schedule (days after noncompliance): 
 
 | Field | Detail |
 |---|---|
-| **Setting Name** | Require real-time protection |
-| **UI Path** | Devices > Compliance policies > Create policy > Windows 10/11 > **System Security > Require real-time protection** |
+| **Setting Name** | Real-time protection |
+| **UI Path** | Devices > Compliance policies > Create policy > Windows 10/11 > **System Security > Defender > Real-time protection** |
 | **Value** | Require |
 | **Effect** | Checks that Microsoft Defender Antivirus real-time protection is active. Devices with RTP disabled or where a third-party AV has taken over the Windows Security Center registration are flagged. |
 | **False-Positive Risk** | • Third-party AV solutions (CrowdStrike, Sophos, etc.) that register with Windows Security Center and **disable Defender RTP by design** — this is expected behaviour but will trigger non-compliance unless the policy accounts for it. <br>• Brief RTP suspension during certain software installations or AV definition updates. |
@@ -68,8 +68,8 @@ Set "Mark device noncompliant" action to **Schedule (days after noncompliance): 
 
 | Field | Detail |
 |---|---|
-| **Setting Name** | Microsoft Defender Firewall |
-| **UI Path** | Devices > Compliance policies > Create policy > Windows 10/11 > **System Security > Microsoft Defender Firewall** |
+| **Setting Name** | Firewall |
+| **UI Path** | Devices > Compliance policies > Create policy > Windows 10/11 > **System Security > Device security > Firewall** |
 | **Value** | Require |
 | **Effect** | Enforces that Windows Firewall is enabled across all three network profiles: Domain, Private, and Public. Any profile with the firewall disabled triggers non-compliance. |
 | **False-Positive Risk** | • Third-party firewall software (Cisco, Symantec) that disables Windows Firewall as part of its installation — the Windows Security Center may report firewall as "off" even though a third-party firewall is active. <br>• GPO conflicts from legacy on-premise Group Policy disabling the firewall for specific profiles. |
@@ -104,16 +104,20 @@ Set "Mark device noncompliant" action to **Schedule (days after noncompliance): 
 
 ---
 
-## UI Path Change Warnings
+## UI Path Verification Notes
 
-> ⚠️ **The following paths may have changed since training data and should be verified in your Intune tenant before deployment.**
+> ✅ **Paths below verified against Microsoft Learn docs (last updated 2026-07-01). Source: [Windows compliance settings in Microsoft Intune](https://learn.microsoft.com/en-us/mem/intune/protect/compliance-policy-create-windows)**
 
-| Setting | Known Risk | Suggested Verification |
+| Setting | Verified Status | Notes |
 |---|---|---|
-| **Require BitLocker** | Microsoft has been migrating BitLocker controls between Compliance policies and Endpoint Security > Disk Encryption profiles. The compliance toggle may have moved or been deprecated in favour of the Disk Encryption profile. | Navigate to **Intune > Endpoint security > Disk encryption** and check if the Compliance policy setting still appears independently. |
-| **Windows Health Attestation settings** | The HAS sub-settings (code integrity, ELAM, etc.) have been periodically restructured. Some were collapsed into a single "Device Health Attestation" toggle. | Search **"attestation"** in the Intune compliance policy setting search bar to find the current setting names. |
-| **Microsoft Defender Firewall (compliance)** | This setting has moved between the Compliance policy and Endpoint Security > Firewall profiles in some tenants depending on licensing tier. | Confirm your licensing (Intune Plan 1 vs Plan 2 / Defender for Endpoint P1/P2) as some settings are gated by licence. |
-| **Device threat level (MDE integration)** | Requires the MDE-Intune connector to be active. If not configured, this setting does nothing silently. | Verify under **Tenant admin > Connectors and tokens > Microsoft Defender for Endpoint** that the connector status is **Enabled**. |
+| **Require BitLocker** | ✅ Confirmed — still in Compliance policy | Lives under **Device Health > Windows Health Attestation Service evaluation rules**. A separate **Encryption of data storage on a device** toggle exists under System Security > Encryption but uses a weaker CSP check (DeviceStatus, not TPM-backed HAS). Use the BitLocker HAS setting for stronger assurance. Requires a reboot after encryption completes before the device reports compliant. |
+| **Require Secure Boot** | ✅ Confirmed | Under **Device Health > Windows Health Attestation Service evaluation rules**. Note: devices without TPM 2.0 will always report Not Compliant. |
+| **Minimum OS version** | ✅ Confirmed | Under **Device Properties > Operating system version**. Use `10.0.22621.2861` — Windows 11 reports internally as `10.0.XXXXX`. A newer **Valid operating system builds** range setting is also available for more granular N-1 band control. |
+| **Real-time protection** | ✅ Confirmed | Under **System Security > Defender > Real-time protection** (Defender sub-section, not top-level System Security). |
+| **Firewall** | ✅ Confirmed | Under **System Security > Device security > Firewall** (Device security sub-section). Setting name in the portal is **Firewall**, not "Microsoft Defender Firewall". |
+| **Password** | ✅ Confirmed | Under **System Security > Password > Require a password to unlock mobile devices**. |
+| **Device threat level (MDE)** | ⚠️ Requires connector | **Require the device to be at or under the machine risk score** is under **Microsoft Defender for Endpoint** section. This setting does nothing if the MDE-Intune connector is not active. Verify under **Tenant admin > Connectors and tokens > Microsoft Defender for Endpoint**. |
+| **Jailbroken / Rooted** | ℹ️ Not a native Windows setting | Microsoft docs confirm this is **Not applicable** on Windows. The correct Windows equivalent is the Device Health Attestation rules (code integrity, Secure Boot) combined with MDE risk score. |
 
 ---
 
@@ -124,11 +128,11 @@ Set "Mark device noncompliant" action to **Schedule (days after noncompliance): 
 | 1 | Require BitLocker | Require | 7 days |
 | 2 | Require Secure Boot | Require | 7 days |
 | 3 | Minimum OS version | 10.0.22621.2861 | 7 days |
-| 4 | Require real-time protection | Require | 7 days |
-| 5 | Microsoft Defender Firewall | Require | 7 days |
+| 4 | Real-time protection | Require | 7 days |
+| 5 | Firewall | Require | 7 days |
 | 6 | Require a password to unlock mobile devices | Require | 7 days |
 | 7 | Device threat level / Health Attestation | Secured / Require | 7 days |
 
 ---
 
-*Review this policy against the live Intune portal before deployment. Microsoft updates Intune UI paths and setting availability regularly — always validate in a test tenant or pilot AAD group before broad rollout.*
+*Paths verified against Microsoft Learn docs (last updated 2026-07-01). Always validate in a test tenant or pilot group before broad rollout.*
