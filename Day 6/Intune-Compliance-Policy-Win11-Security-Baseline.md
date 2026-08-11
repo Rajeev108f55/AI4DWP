@@ -135,4 +135,86 @@ Set "Mark device noncompliant" action to **Schedule (days after noncompliance): 
 
 ---
 
+## Policy Validation Steps
+
+### 1. Where to Find a Device's Compliance Status for This Specific Policy
+
+**Path:** `intune.microsoft.com` > **Devices** > **All devices** > [select device] > **Device compliance**
+
+This opens the per-device compliance blade. You will see every policy assigned to the device listed by name. Click the policy name to expand it and see the per-setting result — each setting shows **Compliant**, **Not compliant**, or **Not applicable** individually.
+
+Alternatively, to view from the policy side:
+`Devices` > **Compliance policies** > [select this policy] > **Device status**
+This lists every device the policy is assigned to and its current state. Use the **Setting compliance** tab to pivot by setting rather than by device — useful for identifying which single setting is causing the most failures across the fleet.
+
+---
+
+### 2. Compliance States and Their Conditional Access Impact
+
+| State | What It Means | Conditional Access Impact |
+|---|---|---|
+| **Compliant** | The device has checked in with Intune and passed every setting in the policy. | Full access granted to resources protected by CA policies that require a compliant device. |
+| **Not compliant** | The device has checked in and failed one or more settings, **and** the grace period has expired (or no grace period is set). | CA blocks access to protected resources (Exchange Online, SharePoint, Teams, etc.). The user sees an error in the app or browser directing them to the Company Portal. The device can still reach non-CA-protected resources. |
+| **In grace period** | The device has checked in and failed one or more settings, **but** the grace period (7 days in this policy) has not yet expired. | **Access is not blocked.** The device behaves as compliant for CA purposes during the grace window. The user receives a notification in Company Portal that the device is at risk, but is not locked out. This window is intended to allow time for remediation without impacting productivity. |
+
+> ⚠️ **Important:** "In grace period" does **not** mean the device is safe — it means enforcement is deferred. A device with BitLocker disabled is genuinely non-compliant even while in grace period. The 7-day window should be used for remediation, not ignored.
+
+---
+
+### 3. BitLocker Showing Non-Compliant Despite Being Enabled — Three Most Common Causes
+
+The **Require BitLocker** setting uses the **Windows Health Attestation Service (HAS)**, which reads TPM-backed attestation data, not just the BitLocker UI status. This means BitLocker can be "on" visually but still fail the HAS check.
+
+---
+
+#### Cause 1: Device Has Not Rebooted Since Encryption Completed
+
+**Why it fires:** HAS reads attestation data that is captured and sealed at boot time. If BitLocker encryption finished after the last boot, the attestation token still reflects the pre-encryption state. Intune sees the stale token and reports non-compliant.
+
+**Fastest check:**
+```powershell
+manage-bde -status C:
+```
+Look for `Percentage Encrypted: 100%` and `Protection Status: Protection On`.
+If both are true and the device is still non-compliant in Intune — **reboot the device**, then trigger a manual sync: Company Portal app > **Sync** (or Intune admin center > Device > **Sync**). Re-check compliance status after 15 minutes.
+
+---
+
+#### Cause 2: BitLocker Is On But Suspended (Protectors Off)
+
+**Why it fires:** Certain operations — Windows feature updates, firmware updates, BIOS changes, or BitLocker recovery key rotation — cause Windows to automatically **suspend** BitLocker protection. The drive remains encrypted but protection is paused (`Protection Status: Protection Off`). HAS detects this and reports non-compliant.
+
+**Fastest check:**
+```powershell
+manage-bde -status C:
+```
+Look for `Protection Status: Protection Off`. If you see this:
+```powershell
+manage-bde -resume C:
+```
+Then reboot and sync. If suspension is happening repeatedly, check Windows Update logs — feature upgrades temporarily suspend BitLocker by design and should auto-resume after 2 reboots.
+
+---
+
+#### Cause 3: TPM Is Not Provisioned, Cleared, or in a Degraded State
+
+**Why it fires:** HAS validates BitLocker status through the TPM. If the TPM is not initialised, was cleared (e.g., after a motherboard swap or BIOS reset), or is reporting a firmware error, HAS cannot obtain a valid attestation token — it returns no data, which Intune treats as non-compliant. The BitLocker UI may show encryption is on because Windows can encrypt without a TPM (using a password protector), but HAS specifically requires TPM-backed key protection.
+
+**Fastest check:**
+```powershell
+Get-Tpm
+```
+Check:
+- `TpmPresent: True`
+- `TpmReady: True`
+- `TpmEnabled: True`
+
+If `TpmReady: False` — open **tpm.msc** and check for error messages. A "TPM is not ready for use" state often requires clearing and re-initialising the TPM in UEFI, then re-enabling BitLocker with TPM key protectors:
+```powershell
+manage-bde -protectors -get C:
+```
+Confirm a `TPM` type protector exists (not only a `Password` or `Recovery Key` protector). If no TPM protector is listed, BitLocker is not TPM-backed and will always fail HAS regardless of encryption status.
+
+---
+
 *Paths verified against Microsoft Learn docs (last updated 2026-07-01). Always validate in a test tenant or pilot group before broad rollout.*
