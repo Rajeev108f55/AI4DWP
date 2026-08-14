@@ -19,12 +19,14 @@ pilot ring.
 **Why this — not "test more" — would have caught it:** Friday's rollout went
 straight to the full-floor group with no intermediate ring. If a Pilot Ring gate
 had existed, the drive-mapping script's SYSTEM-context failure (see root cause in
-[KB-L2L3-Floor6-Login-DriveMapping-Failure-20260814.md](KB-L2L3-Floor6-Login-DriveMapping-Failure-20260814.md))
+[KB-L2L3-Floor6-Login-Issues-20260814.md](KB-L2L3-Floor6-Login-Issues-20260814.md))
 would have surfaced against 10 pilot devices on Friday afternoon — generating the
 same Event ID 98 / IME log error, but affecting a handful of test devices instead of
 a dozen+ production users on Monday morning. The second-approver toggle makes this
 a structural blocker, not a reminder or checklist item someone can skip under
 deadline pressure.
+
+(Root cause reference: [KB-L2L3-Floor6-Login-Issues-20260814.md](KB-L2L3-Floor6-Login-Issues-20260814.md))
 
 ---
 
@@ -78,12 +80,12 @@ fixes table giving a one-line reason per change.
 **3. The runbook is the single source for the L1 and L2/L3 articles.**
 Reasoning for why this holds, not just an assertion: both KB articles re-express the
 same runbook facts at different depths rather than introducing new ones —
-- [KB-L1-Floor6-Login-Slowness-20260814.md](KB-L1-Floor6-Login-Slowness-20260814.md)
+- [KB-L1-Floor6-Login-Issues-20260814.md](KB-L1-Floor6-Login-Issues-20260814.md)
   re-expresses only the Runbook's user-safe actions (sign out/in once, don't
   self-repair, contact desk) and its Notes-section warning about unusual
   on-screen data — with no event IDs, portal paths, or scripts, because those
   aren't user-actionable facts.
-- [KB-L2L3-Floor6-Login-DriveMapping-Failure-20260814.md](KB-L2L3-Floor6-Login-DriveMapping-Failure-20260814.md)
+- [KB-L2L3-Floor6-Login-Issues-20260814.md](KB-L2L3-Floor6-Login-Issues-20260814.md)
   re-expresses the same Runbook Procedure/Verification/Rollback steps, adding only
   the technical layer the Runbook already implied but didn't spell out in portal
   terms (exact Event IDs 1500/98, exact Intune blade paths, exact log file path) —

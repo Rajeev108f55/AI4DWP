@@ -190,4 +190,4 @@ Specific changes to process/tooling to stop this recurring:
 - [Resolution-Floor6-Login-Issues-20260814.md](Resolution-Floor6-Login-Issues-20260814.md) — resolution actions and Floor 6 communication.
 - [Runbook-Floor6-Login-Issues-20260814.md](Runbook-Floor6-Login-Issues-20260814.md) — Tier 1/2 runbook for this incident.
 - [Escalation-Copilot-Unauthorized-Access-Incident-20260814.md](Escalation-Copilot-Unauthorized-Access-Incident-20260814.md) — separately tracked security incident reported on the same floor; do not conflate with this drive-mapping issue.
-- [KB-L1-Floor6-Login-Slowness-20260814.md](KB-L1-Floor6-Login-Slowness-20260814.md) — end-user self-service article for this incident.
+- [KB-L1-Floor6-Login-Issues-20260814.md](KB-L1-Floor6-Login-Issues-20260814.md) — end-user self-service article for this incident.
