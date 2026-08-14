@@ -1,10 +1,20 @@
-# Summary — Tangled Issues from Floor 6 Slack Report (09:14)
+# Summary — Issues from Floor 6 Slack Report (09:14)
 
-The original Slack message bundles three separate problems together. They are separated below and ordered by urgency, with the first diagnostic check and rationale for each.
+**Context:** 
+FinBridge Department Floor 6
+Legal department
+Affected 45 users
+recently migrated to Windows 11 and enrolled in Intune, is in chaos.
+
+The original Slack message bundles three separate problems together. They are separated below and ordered by urgency, with department/affected user count, an explicit urgency level, the first diagnostic check, and rationale for each.
 
 ---
 
 ## 1. Copilot Showing Unauthorized Client Matter Data (Highest Urgency)
+
+**Department:** Legal (Floor 6)
+**Affected users:** 1 confirmed (paralegal) — out of 45 department staff; whether others are affected is **to confirm**
+**Urgency level:** Critical
 
 **Issue:** A paralegal reports Copilot displayed a client matter she states she has never had access to.
 
@@ -16,6 +26,10 @@ The original Slack message bundles three separate problems together. They are se
 
 ## 2. Login Failures / Slow Logins (Medium-High Urgency)
 
+**Department:** Legal (Floor 6)
+**Affected users:** A dozen+ confirmed — out of 45 department staff
+**Urgency level:** High
+
 **Issue:** A dozen+ Floor 6 users can't log in or logins are taking a long time.
 
 **What to check first:** Pull event logs / sign-in logs from one or two affected Floor 6 machines to identify error codes, and check whether these logins correlate with Friday's document management app rollout (e.g., new permissions groups, GPO changes, or profile path changes).
@@ -25,6 +39,10 @@ The original Slack message bundles three separate problems together. They are se
 ---
 
 ## 3. Missing Desktop Shortcuts (Lower Urgency)
+
+**Department:** Legal (Floor 6)
+**Affected users:** At least 1 confirmed — out of 45 department staff; whether this overlaps with the login-failure group is **to confirm**
+**Urgency level:** Medium
 
 **Issue:** At least one user reports their desktop shortcuts have vanished.
 
@@ -36,4 +54,5 @@ The original Slack message bundles three separate problems together. They are se
 
 ## Notes
 - Whether all three issues share a common root cause (Friday's document management app rollout) is **to confirm** — this should be investigated as a possible link once each issue is triaged individually.
-- No facts beyond what was stated in the original Slack message have been assumed.
+- The recent Windows 11 migration and Intune enrolment for Floor 6 is additional context that may be relevant to root cause but is **to confirm**, not assumed.
+- No facts beyond what was stated in the original Slack message and the additional department/headcount context have been assumed.
