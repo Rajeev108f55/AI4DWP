@@ -6,7 +6,7 @@ Legal department
 Affected 45 users
 recently migrated to Windows 11 and enrolled in Intune, is in chaos.
 
-The original Slack message bundles three separate problems together. They are separated below and ordered by urgency, with department/affected user count, an explicit urgency level, the first diagnostic check, and rationale for each.
+Received a message from the IT Ops lead on Slack that bundles three separate problems together. They are separated below and ordered by urgency, with department/affected user count, an explicit urgency level, the first diagnostic check, and rationale for each.
 
 ---
 
